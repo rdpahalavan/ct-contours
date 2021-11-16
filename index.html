@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CT Contour Exercise</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+</head>
+
+<body style="text-align:center;">
+<br>
+<br>
+<br>
+<div class="range-slider grad" style='--min:100; --max:1000; --step:1; --value:200; --text-value:"200"; --prefix:"Threshold: "'>
+    <input id="threshold" type="range" min="100" max="1000" step="1" value="200" oninput="this.parentNode.style.setProperty('--value',this.value); this.parentNode.style.setProperty('--text-value', JSON.stringify((+this.value).toLocaleString()))">
+    <output></output>
+    <div class='range-slider__progress'></div>
+  </div>
+
+<br>
+<br>
+<br>
+
+<div class="range-slider grad" style='--min:0; --max:1000; --step:10; --value:500; --text-value:"500"; --prefix:"Minimum Value: "'>
+    <input id="min" type="range" min="0" max="1000" step="10" value="500" oninput="this.parentNode.style.setProperty('--value',this.value); this.parentNode.style.setProperty('--text-value', JSON.stringify((+this.value).toLocaleString()))">
+    <output></output>
+    <div class='range-slider__progress'></div>
+  </div>
+
+<br>
+<br>
+<br>
+  
+<div class="range-slider grad" style='--min:100; --max:3024; --step:100; --value:2600; --text-value:"2600"; --prefix:"Maximum Value: "'>
+      <input id="max" type="range" min="100" max="3024" step="100" value="2600" oninput="this.parentNode.style.setProperty('--value',this.value); this.parentNode.style.setProperty('--text-value', JSON.stringify((+this.value).toLocaleString()))">
+      <output></output>
+      <div class='range-slider__progress'></div>
+    </div>
+
+<svg width="60vw" viewbox="-20 100 512 512"></svg>
+
+<script>
+
+    const data_series = 'Data_CT.csv';
+    let svg = d3.select("svg");
+    
+    const path = d3.geoPath();
+
+    function plot_contour(fileName, min_value, max_value, threshold)
+    {
+        d3.csv(fileName).then(function (data)
+        {
+            let m= 512, n= 512;
+
+            let values_T= [];
+            data.forEach(function (d) {
+                values_T.push(+d[0]);
+            });
+
+            let colors = d3.scaleLinear()
+                .domain(d3.range(min_value,max_value,
+                    parseInt(Math.abs(max_value-min_value)/6)))
+                .range(['#ffffff','#0d1a50','#3e5eba','#ffffbf', '#fdae61','#d7191c'])
+                .interpolate(d3.interpolateHcl);
+
+            let contours = d3.contours()
+            .size([m, n])
+                .thresholds(d3.range(min_value,max_value,threshold))
+                (values_T);
+
+            svg.append("g").attr("class","contours")
+                .selectAll("path")
+                .data(contours)
+                .enter()
+                .append("path")
+                .attr("d",function(d){return path(d)})
+                .attr("stroke","black")
+                .attr("stroke-width",".1px")
+                .attr("stroke-linejoin", "round")
+                .attr("fill",
+                    function (d) {
+                        return colors(d.value)
+                    })
+        })
+    }
+
+    plot_contour(data_series, 500, 2600, 200);
+    d3.selectAll("#threshold, #min, #max").on("change",function (d) {
+            let ths = 200;
+            let min = 500;
+            let max = 2600;
+            if(d.srcElement.id=='threshold'){
+                ths = this.value;
+            }
+            else if(d.srcElement.id=='min'){
+                min = this.value;
+            }
+            else{
+                max = this.value;
+            }
+            svg.selectAll('*').remove()
+            plot_contour(data_series, min, max, ths);
+        })
+
+</script>
+</body>
+</html>
